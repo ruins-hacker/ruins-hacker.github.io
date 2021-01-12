@@ -11,7 +11,7 @@
 
 
 <meta name="keywords" content="iOS,底层原理,">
-<meta name="description" content="">
+<meta name="description" content="<h1 id="OC对象的本质"><a href="#OC对象的本质" class="headerlink" title="OC对象的本质"></a>OC对象的本质</h1><p>学习iOS开发的底层原理，第一课一定是<font color=red>OC对象的本质</font>因为，OC是iOS开发最基本的语言，只有了解并熟悉OC的本质，我们才能慢慢了解整个iOS开发的底层原理～</p>">
 
 
 <script src="/js/jquery.min.js"></script>
@@ -271,7 +271,46 @@
 </div>
 <div class="article-content">
     <div id="article" class="content">
-        
+        <h1 id="OC对象的本质"><a href="#OC对象的本质" class="headerlink" title="OC对象的本质"></a>OC对象的本质</h1><p>学习iOS开发的底层原理，第一课一定是<font color=red>OC对象的本质</font>因为，OC是iOS开发最基本的语言，只有了解并熟悉OC的本质，我们才能慢慢了解整个iOS开发的底层原理～</p>
+<a id="more"></a>
+
+<h2 id="OC对象"><a href="#OC对象" class="headerlink" title="OC对象"></a>OC对象</h2><p>要了解OC对象的本质，我们应该知道，其实OC代码的底层实现是C++语言，C++的底层实现是汇编语言，汇编语言的底层实现是机器语言。<br><br>OC ——&gt; C++ ——&gt; 汇编语言 ——&gt; 机器语言</p>
+<h3 id="NSObject的本质"><a href="#NSObject的本质" class="headerlink" title="NSObject的本质"></a>NSObject的本质</h3><p>最能代表OC本质的对象必然是NSObject类下的对象，我们都知道，在OC中创建一个NSObject对象的方法如下：</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-built_in">NSObject</span> *obj = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br></code></pre></td></tr></table></figure>
+<p>现在假设我们的工程文件中已经有了如上的OC代码，那么我们如何去识别它的底层本质呢？不要急，一步一步来。</p>
+<ol>
+<li>在命令行中找到我们OC代码存储的位置</li>
+<li>输入如下代码，将OC文件转换为C++文件<br> <br>xcrun -sdk iphoneos clang -arch arm64 -rewrite <font color=red>OC源文件</font> -o <font color=red>输入的CPP文件</font>。</li>
+<li>编译器打开目录下得到的CPP文件，该文件的C++代码，就是我们OC代码的C++原理</li>
+</ol>
+<p>通过转化我们得到了NSObject对象创建的C++代码</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">NSObject_IMPL</span> &#123;</span><br>    Class isa;<br>&#125;;<br></code></pre></td></tr></table></figure>
+<p>其中isa是结构体的成员，在64位环境下占8个字节，在32位环境下占4个字节。</p>
+<h4 id="问题：NSObject占用多少内存？"><a href="#问题：NSObject占用多少内存？" class="headerlink" title="问题：NSObject占用多少内存？"></a>问题：NSObject占用多少内存？</h4><figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-comment">//获得NSObject的实例对象的成员变量所占用的空间---8</span><br><span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;%zd&quot;</span>, class_getInstanceSize([<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>]));<br><br><span class="hljs-comment">//获得obj指针所指向内存的大小---16</span><br><span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;%zd&quot;</span>, malloc_size(__bridge <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *)obj;<br></code></pre></td></tr></table></figure>
+<p><code>NSObject</code>所占用内存大小是16字节，<code>alloc</code>分配了16字节，但是成员变量只使用了8个字节（isa）</p>
+<p>instance对象的isa指向class对象<br><br>class对象的isa指向meta-class对象<br><br>meta-class对象的isa指向基类的meta-class对象</p>
+<p>在源码中，若OC对象的成员变量小于16字节，则会默认分配16字节</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-keyword">inline</span> size_t instanceSize(size_t extraBytes) <span class="hljs-keyword">const</span> &#123;<br>    <span class="hljs-keyword">if</span> (fastpath(cache.hasFastInstanceSize(extraBytes))) &#123;<br>        <span class="hljs-keyword">return</span> cache.fastInstanceSize(extraBytes);<br>    &#125;<br><br>    size_t size = alignedInstanceSize() + extraBytes;<br>    <span class="hljs-comment">// CF requires all objects be at least 16 bytes.</span><br>    <span class="hljs-keyword">if</span> (size &lt; <span class="hljs-number">16</span>) size = <span class="hljs-number">16</span>;<br>    <span class="hljs-keyword">return</span> size;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h4 id="问题：Student对象占用多少内存？"><a href="#问题：Student对象占用多少内存？" class="headerlink" title="问题：Student对象占用多少内存？"></a>问题：Student对象占用多少内存？</h4><figure class="highlight plain"><table><tr><td class="code"><pre><code class="hljs obj">@interface Student : NSObject &#123;<br>    int _age;<br>    int _num;<br>    int _height;<br>&#125;<br>@end<br></code></pre></td></tr></table></figure>
+<p>这个问题我们分析很简单,Student类的对象中含有isa指针占用8个字节,加上Student的三个int型的成员变量各占4字节,所以总共占用24个字节,又因为oc的底层为结构体,结构体的内存对齐使得该类占用24字节.<br></p>
+<p><font color=red>因此答案是24字节</font></p>
+<p>那么我们可以用上述的<code>class_getInstanceSize</code>方法和<code>malloc_size </code>得出Student类所占用内存的大小.<br></p>
+<p>结果如下: 16 32(get_Instance为16)</p>
+<p>结果我们想的不一样?</p>
+<h5 id="为什么"><a href="#为什么" class="headerlink" title="为什么?"></a>为什么?</h5><p>malloc底层实现是C++函数的calloc, calloc调用malloc_zone_calloc</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-keyword">void</span> *<span class="hljs-title">calloc</span><span class="hljs-params">(<span class="hljs-keyword">size_t</span> num_items, <span class="hljs-keyword">size_t</span> size)</span> </span>&#123;<br>    malloc_zone_calloc(<span class="hljs-built_in">malloc</span> *zone, <span class="hljs-keyword">size_t</span> num_items, <span class="hljs-keyword">size_t</span> size);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>通过阅读源码我们发现OC分配内存都是16的倍数(源码过于复杂不在这里讲解,有兴趣的可以查阅libmaloc源码).</p>
+<p>因此Student实际需要24字节,但是操作系统给了该类16的倍数32个字节.</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-comment">//创建一个实例对象,至少需要多少字节内存</span><br><span class="hljs-meta">#import<span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br>class_getInstance([<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>])<br><br><span class="hljs-comment">//创建一个实例对象,实际分配多少字节内存</span><br><span class="hljs-meta">#import<span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br>malloc_size((__bridge <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span>*)obj)<br></code></pre></td></tr></table></figure>
+<br/>
+<font color=red>小知识课堂</font>:1.iOS中内存的读取存储为小端模式,从高位地址开始读取 2.内存对齐:结构的内存大小必须是最大成员变量所占内存的倍数
+
+<h4 id="PS：查看apple源代码"><a href="#PS：查看apple源代码" class="headerlink" title="PS：查看apple源代码"></a>PS：查看apple源代码</h4><p><a target="_blank" rel="noopener" href="https://opensource.apple.com/tarballs/">https://opensource.apple.com/tarballs/</a><br>其中搜索objc，就是oc的源代码</p>
+<h3 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h3><ol>
+<li>属性生成类的成员变量</li>
+<li>方法不能放到实例变量中</li>
+</ol>
+
     </div>
 </div>
 <style>
