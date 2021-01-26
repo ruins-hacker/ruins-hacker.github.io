@@ -308,6 +308,29 @@
 <li>属性生成类的成员变量</li>
 <li>方法不能放到实例变量中</li>
 </ol>
+<h2 id="OC对象的分类"><a href="#OC对象的分类" class="headerlink" title="OC对象的分类"></a>OC对象的分类</h2><h4 id="1-instance-对象"><a href="#1-instance-对象" class="headerlink" title="1. instance 对象"></a>1. instance 对象</h4><p>通过类alloc出来的对象,每次调用alloc都会产生新的instance对象</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-built_in">NSObject</span> *obj1 = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br><span class="hljs-built_in">NSObject</span> *obj2 = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br></code></pre></td></tr></table></figure>
+<p>obj1、obj2是NSObject的instance对象(实例对象)</p>
+<p>不同对象,占据两个不同内存</p>
+<p>instance对象中存储的信息包括:<br><br>    - isa指针<br><br>    - 其他成员变量<br></p>
+<h4 id="2-class对象"><a href="#2-class对象" class="headerlink" title="2. class对象"></a>2. class对象</h4><figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-meta">#import <span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br><br><span class="hljs-built_in">NSObject</span> *obj = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br>Class objClass = [obj <span class="hljs-keyword">class</span>];<br>Class objClass1 = [<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>];<br>Class objClass2 = object_getClass(obj);<br></code></pre></td></tr></table></figure>
+<figure class="highlight plain"><figcaption><span>``` objClass2```都是NSObject的class(类)对象</span></figcaption><table><tr><td class="code"><pre><code class="hljs objClass1```~"><br>他们都是同一个对象,每个对象内存中有且只有一个类对象<br><br>class对象内存存储的信息包括:<br> + isa指针<br> + superclass指针<br> + 类的属性信息(@property)、类的对象方法信息(instance method)<br> + 类的协议信息(protocol)、类的成员变量信息(ivar)<br>  <br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;01&#x2F;13&#x2F;yo3WCklFiuL6vGM.png)<br><br>#### 3. meta-class对象<br>metal-class(元类对象)是对象的对象,每个类在内存中只有一个meta-class对象<br>&#96;&#96;&#96; objc<br>#import &lt;objc&#x2F;runtime.h&gt;<br><br>NSObject *obj &#x3D; [[NSObject alloc] init];<br>Class objMetaClass &#x3D; object_getClass([NSObject class]);<br></code></pre></td></tr></table></figure>
+<p>注意:class方法返回的一直是类对象,不会返回元对象.只有调用runtime中的object_getInstance传入类对象才会返回元类对象</p>
+<p>meta-class对象和class对象用途不同,但是内存中存储的信息是一样的:</p>
+<ul>
+<li>isa指针</li>
+<li>superclass指针</li>
+<li>类方法信息(class method)</li>
+</ul>
+<p>现在我们可以回答这个问题</p>
+<h4 id="问题-isa指针指向哪里"><a href="#问题-isa指针指向哪里" class="headerlink" title="问题:isa指针指向哪里?"></a>问题:isa指针指向哪里?</h4><p><img src="https://i.loli.net/2021/01/14/WtrAc54YMLDvqgB.png" alt="avatar"></p>
+<ul>
+<li>instance对象的isa指针指向class对象(当调用对象方法时,通过isa指针找到class对象,最后找到对象方法进行调用)</li>
+<li>class对象的isa指针指向meta-class对象(当调用类方法时,通过isa指针找到meta-class对象,最后找到类方法进行调用)<br/></li>
+<li><font color=red>32为iOS系统中,实例对象isa指针指向的地址就是类对象的地址.但是在64位系统中,isa指针需要进行一次位运算,(ISA_MASK)来得到实际地址</font></li>
+</ul>
+<p>ps:调用父类的对象方法,先通过isa找到类对象,再通过superClass指针找到父类对象的Class方法(没有父类,superClass指针为nil)</p>
+<p><img src="https://i.loli.net/2021/01/27/qa2cUMCPjGfiYHg.png" alt="avatar"></p>
 
     </div>
 </div>
