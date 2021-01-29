@@ -290,7 +290,7 @@
 <p>在源码中，若OC对象的成员变量小于16字节，则会默认分配16字节</p>
 <figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-keyword">inline</span> size_t instanceSize(size_t extraBytes) <span class="hljs-keyword">const</span> &#123;<br>    <span class="hljs-keyword">if</span> (fastpath(cache.hasFastInstanceSize(extraBytes))) &#123;<br>        <span class="hljs-keyword">return</span> cache.fastInstanceSize(extraBytes);<br>    &#125;<br><br>    size_t size = alignedInstanceSize() + extraBytes;<br>    <span class="hljs-comment">// CF requires all objects be at least 16 bytes.</span><br>    <span class="hljs-keyword">if</span> (size &lt; <span class="hljs-number">16</span>) size = <span class="hljs-number">16</span>;<br>    <span class="hljs-keyword">return</span> size;<br>&#125;<br></code></pre></td></tr></table></figure>
 <h4 id="问题：Student对象占用多少内存？"><a href="#问题：Student对象占用多少内存？" class="headerlink" title="问题：Student对象占用多少内存？"></a>问题：Student对象占用多少内存？</h4><figure class="highlight plain"><table><tr><td class="code"><pre><code class="hljs obj">@interface Student : NSObject &#123;<br>    int _age;<br>    int _num;<br>    int _height;<br>&#125;<br>@end<br></code></pre></td></tr></table></figure>
-<p>这个问题我们分析很简单,Student类的对象中含有isa指针占用8个字节,加上Student的三个int型的成员变量各占4字节,所以总共占用24个字节,又因为oc的底层为结构体,结构体的内存对齐使得该类占用24字节.<br></p>
+<p>这个问题我们分析很简单,Student类的对象中含有isa指针占用8个字节,加上Student的三个int型的成员变量各占4字节,所以总共占用20个字节,又因为oc的底层为结构体,结构体的内存对齐使得该类占用24字节.<br></p>
 <p><font color=red>因此答案是24字节</font></p>
 <p>那么我们可以用上述的<code>class_getInstanceSize</code>方法和<code>malloc_size </code>得出Student类所占用内存的大小.<br></p>
 <p>结果如下: 16 32(get_Instance为16)</p>
@@ -313,8 +313,7 @@
 <p>obj1、obj2是NSObject的instance对象(实例对象)</p>
 <p>不同对象,占据两个不同内存</p>
 <p>instance对象中存储的信息包括:<br><br>    - isa指针<br><br>    - 其他成员变量<br></p>
-<h4 id="2-class对象"><a href="#2-class对象" class="headerlink" title="2. class对象"></a>2. class对象</h4><figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-meta">#import <span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br><br><span class="hljs-built_in">NSObject</span> *obj = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br>Class objClass = [obj <span class="hljs-keyword">class</span>];<br>Class objClass1 = [<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>];<br>Class objClass2 = object_getClass(obj);<br></code></pre></td></tr></table></figure>
-<figure class="highlight plain"><figcaption><span>``` objClass2```都是NSObject的class(类)对象</span></figcaption><table><tr><td class="code"><pre><code class="hljs objClass1```~"><br>他们都是同一个对象,每个对象内存中有且只有一个类对象<br><br>class对象内存存储的信息包括:<br> + isa指针<br> + superclass指针<br> + 类的属性信息(@property)、类的对象方法信息(instance method)<br> + 类的协议信息(protocol)、类的成员变量信息(ivar)<br>  <br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;01&#x2F;13&#x2F;yo3WCklFiuL6vGM.png)<br><br>#### 3. meta-class对象<br>metal-class(元类对象)是对象的对象,每个类在内存中只有一个meta-class对象<br>&#96;&#96;&#96; objc<br>#import &lt;objc&#x2F;runtime.h&gt;<br><br>NSObject *obj &#x3D; [[NSObject alloc] init];<br>Class objMetaClass &#x3D; object_getClass([NSObject class]);<br></code></pre></td></tr></table></figure>
+<h4 id="2-class对象"><a href="#2-class对象" class="headerlink" title="2. class对象"></a>2. class对象</h4><figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-meta">#import <span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br><br><span class="hljs-built_in">NSObject</span> *obj = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br>Class objClass = [obj <span class="hljs-keyword">class</span>];<br>Class objClass1 = [<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>];<br>Class objClass2 = object_getClass(obj);<br><br>```objClass1```~ ``` objClass2```都是<span class="hljs-built_in">NSObject</span>的<span class="hljs-keyword">class</span>(类)对象<br><br>他们都是同一个对象,每个对象内存中有且只有一个类对象<br><br><span class="hljs-keyword">class</span>对象内存存储的信息包括:<br> + isa指针<br> + superclass指针<br> + 类的属性信息(<span class="hljs-keyword">@property</span>)、类的对象方法信息(instance method)<br> + 类的协议信息(protocol)、类的成员变量信息(ivar)<br>  <br>![avatar](https:<span class="hljs-comment">//i.loli.net/2021/01/13/yo3WCklFiuL6vGM.png)</span><br><br>#### <span class="hljs-number">3.</span> meta-<span class="hljs-keyword">class</span>对象<br>metal-<span class="hljs-keyword">class</span>(元类对象)是对象的对象,每个类在内存中只有一个meta-<span class="hljs-keyword">class</span>对象<br><br><span class="hljs-meta">#import <span class="hljs-meta-string">&lt;objc/runtime.h&gt;</span></span><br><br><span class="hljs-built_in">NSObject</span> *obj = [[<span class="hljs-built_in">NSObject</span> alloc] init];<br>Class objMetaClass = object_getClass([<span class="hljs-built_in">NSObject</span> <span class="hljs-keyword">class</span>]);<br></code></pre></td></tr></table></figure>
 <p>注意:class方法返回的一直是类对象,不会返回元对象.只有调用runtime中的object_getInstance传入类对象才会返回元类对象</p>
 <p>meta-class对象和class对象用途不同,但是内存中存储的信息是一样的:</p>
 <ul>
@@ -359,6 +358,13 @@
     $(function () { $('#article').click(function (e) { if (e.target.tagName == "IMG") { if ($('#nonediv').length == 0) { let MImg = `<div id='noneimg'><img src='${e.target.currentSrc}'></div>`; let MDiv = "<div id='nonediv' style='cursor: pointer;display: none; position: fixed;left: 0;top: 0; right: 0;bottom: 0;background-color: #333;opacity:0.5;z-index: 108;'></div>"; $('#article').append(MDiv); $('#article').append(MImg); $("#nonediv").fadeIn("slow"); $("#noneimg img").fadeIn("slow") } } else { if ($('#nonediv').length !== 0) { $("#noneimg ").fadeOut("slow"); $("#nonediv").fadeOut("slow"); setTimeout(function () { $('#nonediv').remove(); $('#noneimg').remove() }, 500) } } }); $('.article-content').addClass('content-move') });
 </script>
 <div class="Last-Next">
+    
+    <a href="/2021/01/27/KVO/">
+        <div class="last">
+            <span>上一篇</span>
+            <p>KVO</p>
+        </div>
+    </a>
     
 
     
