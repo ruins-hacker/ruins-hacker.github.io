@@ -272,9 +272,31 @@
 <div class="article-content">
     <div id="article" class="content">
         <h1 id="KVO"><a href="#KVO" class="headerlink" title="KVO"></a>KVO</h1><p>KVO的全称是Key-Value Observing,俗称“键值监听”,可以用于监听某个对象属性值的改变</p>
-<p><img src="https://ibb.co/syJmzZP" alt="avatar"></p>
-<p>从一道面试题引出KVO的内容</p>
-<h2 id="iOS用什么方式实现一个对象的KVO-KVO的本质是什么"><a href="#iOS用什么方式实现一个对象的KVO-KVO的本质是什么" class="headerlink" title="iOS用什么方式实现一个对象的KVO?(KVO的本质是什么)?"></a>iOS用什么方式实现一个对象的KVO?(KVO的本质是什么)?</h2><h2 id="如何手动触发KVO"><a href="#如何手动触发KVO" class="headerlink" title="如何手动触发KVO?"></a>如何手动触发KVO?</h2>
+<p><img src="https://i.loli.net/2021/01/31/jRLfAyv1B3q7Ung.png" alt="avatar"></p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">  <span class="hljs-comment">/// 为Person类添加KVO监听</span><br>  <span class="hljs-built_in">NSKeyValueObservingOptions</span> option =  <span class="hljs-built_in">NSKeyValueObservingOptionNew</span>|<span class="hljs-built_in">NSKeyValueObservingOptionOld</span>;<br>  [Person addObserver:<span class="hljs-keyword">self</span> forKeyPath:<span class="hljs-string">@&quot;age&quot;</span> options:option context:<span class="hljs-literal">nil</span>];<br>  <span class="hljs-comment">///监听变化</span><br>  - (<span class="hljs-keyword">void</span>)observeValueForKeyPath:(<span class="hljs-built_in">NSString</span> *)keyPath ofObject:(<span class="hljs-keyword">id</span>)object change:(<span class="hljs-built_in">NSDictionary</span>&lt;<span class="hljs-built_in">NSKeyValueChangeKey</span>,<span class="hljs-keyword">id</span>&gt; *)change context:(<span class="hljs-keyword">void</span> *)context &#123;<br>    <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;监听到%@的%@属性值改变了 -- %@&quot;</span>, object, keyPath, change);<br>&#125;<br>  <span class="hljs-comment">///为Person移除监听起</span><br>  [<span class="hljs-keyword">self</span> removeObserver:<span class="hljs-keyword">self</span> forKeyPath:<span class="hljs-string">@&quot;age&quot;</span>];<br></code></pre></td></tr></table></figure>
+<h2 id="KVO本质探究"><a href="#KVO本质探究" class="headerlink" title="KVO本质探究"></a>KVO本质探究</h2><p>相同类的对象,使用KVO和不使用KVO其本质是有区别的,主要体现在isa上</p>
+<p>未使用KVO<br><img src="https://i.loli.net/2021/01/31/bVcWlsHRw9m75xg.png" alt="avatar"><br>使用KVO<br><img src="https://i.loli.net/2021/01/31/bt1xjoLsdm2q8Un.png" alt="avatar"><br>NSKVONotifying_person是使用Runtime动态创建的一个类,是Person的一个子类</p>
+<p>isa不同-&gt;类对象不同-&gt;对象方法实现不同(set方法)</p>
+<p>_NSSet*ValueAndNotify的内部实现:</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">[<span class="hljs-keyword">self</span> willChangeValueForKey:<span class="hljs-string">@&quot;key&quot;</span>];<br>原来的<span class="hljs-keyword">setter</span>方法<br>[<span class="hljs-keyword">self</span> didChangeValueForKey:<span class="hljs-string">@&quot;key&quot;</span>];<br></code></pre></td></tr></table></figure>
+<ul>
+<li>调用willChangeValueForKey:</li>
+<li>调用原来的setter实现</li>
+<li>调用didChangeValueForKey</li>
+<li>didChangeValueForKey:内部会调用observer的observeValueForKeyPath:ofObject:change:context:方法</li>
+</ul>
+<p>那么经过上面的学习我们可以回答接下来的两道题</p>
+<h3 id="iOS用什么方式实现一个对象的KVO-KVO的本质是什么"><a href="#iOS用什么方式实现一个对象的KVO-KVO的本质是什么" class="headerlink" title="iOS用什么方式实现一个对象的KVO?(KVO的本质是什么)?"></a>iOS用什么方式实现一个对象的KVO?(KVO的本质是什么)?</h3><ul>
+<li>利用Runtime API动态生成一个子类,并且让instance对象的isa指向这个全新的子类</li>
+<li>当修改instance的属性时,会调用NSFoundation的NSSetxxxValueAndNotify函数</li>
+<li>willValueForKey</li>
+<li>父类原来的setter</li>
+<li>didValueForKey(内部触发监听器,observe的监听方法)</li>
+</ul>
+<h3 id="如何手动触发KVO-没有人修改也调用监听"><a href="#如何手动触发KVO-没有人修改也调用监听" class="headerlink" title="如何手动触发KVO?(没有人修改也调用监听)"></a>如何手动触发KVO?(没有人修改也调用监听)</h3><p>手动调用下面两个方法</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">[<span class="hljs-keyword">self</span>.Person willChangValueForKey:<span class="hljs-string">@&quot;age&quot;</span>];<br>[<span class="hljs-keyword">self</span>.Person didChangeValueForKey:<span class="hljs-string">@&quot;age&quot;</span>];<br></code></pre></td></tr></table></figure>
+<h3 id="直接修改成员变量会触发KVO吗"><a href="#直接修改成员变量会触发KVO吗" class="headerlink" title="直接修改成员变量会触发KVO吗?"></a>直接修改成员变量会触发KVO吗?</h3><p>不会触发KVO<br>KVO本质改写对象的set方法</p>
+
     </div>
 </div>
 <style>
