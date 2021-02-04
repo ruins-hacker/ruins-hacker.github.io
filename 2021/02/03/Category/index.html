@@ -284,8 +284,13 @@
 <p><font color=red>源码的阅读顺序</font></p>
 <figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp">objc-os.mm<br><br>_objc_init<br>map_images<br>map_images_nolock<br></code></pre></td></tr></table></figure>
 <figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp">objc-runtime-<span class="hljs-keyword">new</span>.mm<br><br>_read_images<br>remethodizeClass<br>attachCategories<br>attachLists<br><span class="hljs-built_in">realloc</span><br>memmove<br><span class="hljs-built_in">memcpy</span><br></code></pre></td></tr></table></figure>
-<h3 id="class-Extension-类扩展"><a href="#class-Extension-类扩展" class="headerlink" title="class Extension(类扩展)"></a>class Extension(类扩展)</h3><p>给类扩充些属性、成员变量<br>相当于变成私有的声明</p>
-<p>//todo<br>补充</p>
+<h3 id="class-Extension-类扩展"><a href="#class-Extension-类扩展" class="headerlink" title="class Extension(类扩展)"></a>class Extension(类扩展)</h3><p>Extension是Category的一个特例。类扩展与分类相比只少了分类的名称，所以称之为“匿名分类”。</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-class"><span class="hljs-keyword">@interface</span> <span class="hljs-title">XXX</span> ()</span><br><span class="hljs-comment">//私有属性</span><br><span class="hljs-comment">//私有方法（如果不实现，编译时会报警,Method definition for &#x27;XXX&#x27; not found）</span><br><span class="hljs-keyword">@end</span><br></code></pre></td></tr></table></figure>
+<ul>
+<li>为一个类添加额外的原来没有变量，方法和属性</li>
+<li>一般的类扩展写到.m文件中</li>
+<li>一般的私有属性写到.m文件中的类扩展中</li>
+</ul>
 <h3 id="load-加载-方法"><a href="#load-加载-方法" class="headerlink" title="load(加载)方法"></a>load(加载)方法</h3><ul>
 <li>+load方法会在runtime加载类、分类时调用</li>
 <li>每个类、分类的+load，在程序运行过程中只调用一次</li>
@@ -311,7 +316,7 @@
 <figure class="highlight erlang"><table><tr><td class="code"><pre><code class="hljs erlang">call_load_methods<br><br>call_class_loads<br>call_category_loads<br>(*load_method)(cls, SEL_load)<br><br></code></pre></td></tr></table></figure>
 <h3 id="initialize-初始化-方法"><a href="#initialize-初始化-方法" class="headerlink" title="initialize(初始化)方法"></a>initialize(初始化)方法</h3><ul>
 <li>+initialize方法会在类第一次接收到消息时调用</li>
-<li>每个类、分类的+load，在程序运行过程中只调用一次</li>
+<li>每个类、分类的+initialize，在程序运行过程中只调用一次</li>
 </ul>
 <p>调用顺序:<br/></p>
 <ul>
@@ -361,6 +366,22 @@
 <li>先初始化子类</li>
 <li>再初始化父类(可能最终调用的是父类的initialize调用顺序)</li>
 </ol>
+</li>
+</ul>
+<h3 id="Category和Extension的区别"><a href="#Category和Extension的区别" class="headerlink" title="Category和Extension的区别"></a>Category和Extension的区别</h3><ul>
+<li><p>Category的小括号中有名字,而Extension没有;</p>
+</li>
+<li><p>Category只能扩充方法,不能扩充成员变量和属性;</p>
+</li>
+<li><p>如果Category声明了声明了一个属性,那么Category只会生成这个属性的set,get方法的声明,也就不是会实现.</p>
+</li>
+<li><p>Extension被称为匿名分类,没有分类名称</p>
+</li>
+<li><p>Extension中的属性默认为@private</p>
+</li>
+<li><p>Extension中声明的方法不能实现,实现会报错</p>
+</li>
+<li><p>Extension没有独立的实现文件</p>
 </li>
 </ul>
 <h3 id="Category能否添加成员变量-如果可以-如何给Category添加成员变量"><a href="#Category能否添加成员变量-如果可以-如何给Category添加成员变量" class="headerlink" title="Category能否添加成员变量?如果可以,如何给Category添加成员变量?"></a>Category能否添加成员变量?如果可以,如何给Category添加成员变量?</h3>
