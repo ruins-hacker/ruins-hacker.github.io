@@ -334,8 +334,7 @@
 <p><font color=red>源码的阅读顺序</font></p>
 <figure class="highlight apache"><table><tr><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">objc</span>-msg-arm<span class="hljs-number">64</span><br><br><span class="hljs-attribute">_objc_objc_msgSend</span><br></code></pre></td></tr></table></figure>
 <figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp">objc-runtime-<span class="hljs-keyword">new</span>.mm<br><br>class_getInstanceMethod<br>lookUpImpOrNil<br>lookUpImpOrForward<br>_class_initialize<br>callInitialize<br>objc_msgSend(cls, SEL_initialize)<br><br></code></pre></td></tr></table></figure>
-
-
+<h3 id="Category能能否添加属性"><a href="#Category能能否添加属性" class="headerlink" title="Category能能否添加属性"></a>Category能能否添加属性</h3><p>Category可以添加属性,但是属性只能生成set方法和get方法的声明,不能生成成员变量和set、get方法的实现</p>
 <p>其实通过上面两张流程图,我们可以清楚的了解KVC赋值和取值的原理和过程,那么让我们回答下面的几道题吧~</p>
 <h3 id="Category的使用场合是什么"><a href="#Category的使用场合是什么" class="headerlink" title="Category的使用场合是什么?"></a>Category的使用场合是什么?</h3><ol>
 <li>给现有的类添加方法</li>
@@ -413,7 +412,8 @@
 </ul>
 </li>
 </ol>
-<h3 id="Category能否添加成员变量-如果可以-如何给Category添加成员变量"><a href="#Category能否添加成员变量-如果可以-如何给Category添加成员变量" class="headerlink" title="Category能否添加成员变量?如果可以,如何给Category添加成员变量?"></a>Category能否添加成员变量?如果可以,如何给Category添加成员变量?</h3>
+<h3 id="Category能否添加成员变量-如果可以-如何给Category添加成员变量"><a href="#Category能否添加成员变量-如果可以-如何给Category添加成员变量" class="headerlink" title="Category能否添加成员变量?如果可以,如何给Category添加成员变量?"></a>Category能否添加成员变量?如果可以,如何给Category添加成员变量?</h3><p>不能直接给Category添加成员变量,但是可以间接实现Category有成员变量的效果</p>
+
     </div>
 </div>
 <style>
@@ -441,6 +441,13 @@
     $(function () { $('#article').click(function (e) { if (e.target.tagName == "IMG") { if ($('#nonediv').length == 0) { let MImg = `<div id='noneimg'><img src='${e.target.currentSrc}'></div>`; let MDiv = "<div id='nonediv' style='cursor: pointer;display: none; position: fixed;left: 0;top: 0; right: 0;bottom: 0;background-color: #333;opacity:0.5;z-index: 108;'></div>"; $('#article').append(MDiv); $('#article').append(MImg); $("#nonediv").fadeIn("slow"); $("#noneimg img").fadeIn("slow") } } else { if ($('#nonediv').length !== 0) { $("#noneimg ").fadeOut("slow"); $("#nonediv").fadeOut("slow"); setTimeout(function () { $('#nonediv').remove(); $('#noneimg').remove() }, 500) } } }); $('.article-content').addClass('content-move') });
 </script>
 <div class="Last-Next">
+    
+    <a href="/2021/02/07/%E5%85%B3%E8%81%94%E5%AF%B9%E8%B1%A1/">
+        <div class="last">
+            <span>上一篇</span>
+            <p>关联对象</p>
+        </div>
+    </a>
     
 
     
