@@ -3,7 +3,7 @@
 
 	<head>
 		
-<title>关联对象-Quiet</title>
+<title>block-Quiet</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -251,7 +251,7 @@
             
             
         </ul>
-        <h1>关联对象</h1>
+        <h1>block</h1>
         <div class="article-info">
             <div class="article-author">
                 
@@ -264,31 +264,42 @@
                 </svg>
                 
                 <span> <a href="">ruins</a></span>
-                <p>2021-02-07 01:50:26</p>
+                <p>2021-02-08 10:06:26</p>
             </div>
         </div>
     </div>
 </div>
 <div class="article-content">
     <div id="article" class="content">
-        <h1 id="关联对象"><a href="#关联对象" class="headerlink" title="关联对象"></a>关联对象</h1><h2 id="设置关联对象"><a href="#设置关联对象" class="headerlink" title="设置关联对象"></a>设置关联对象</h2><figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-comment">//object-对象;key-关键字;value-关联值;policy-关联策略;</span><br><span class="hljs-keyword">void</span> objc_setAssociatedObject(<span class="hljs-keyword">id</span> object, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> * key,<span class="hljs-keyword">id</span> value, objc_AssociationPolicy policy)<br><br><span class="hljs-keyword">static</span> <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *Person = &amp;Person;<br><span class="hljs-comment">//static const int Person;</span><br><span class="hljs-comment">//@&quot;name&quot;</span><br><span class="hljs-comment">//@selector(name)</span><br>objc_setAssociatedObject(<span class="hljs-keyword">self</span>, Person,name, OBJC_ASSOCIATION_COPY_NONATOMIC);<br><br><span class="hljs-comment">//_cmd == @select(name)</span><br>- (<span class="hljs-built_in">NSString</span> *)name &#123;<br>    objc_getAssociatedObject(<span class="hljs-keyword">self</span>,_cmd);<br>&#125;<br><br></code></pre></td></tr></table></figure>
-<p>关联策略</p>
-<p><code>OBJC_ASSOCIATION_ASSIGN</code>——————————————————<code>assign</code><br><code>OBJC_ASSOCIATION_RETAIN_NONATOMIC</code>————————<code>strong, nonatomic</code><br><code>OBJC_ASSOCIATION_COPY_NONATOMIC</code>——————————<code>copy, nonatomic</code><br><code>OBJC_ASSOCIATION_RETAIN</code>——————————————————<code>strong, atomic</code><br><code>OBJC_ASSOCIATION_COPY</code>————————————————————<code>copy, atomic</code></p>
-<h2 id="关联对象的原理"><a href="#关联对象的原理" class="headerlink" title="关联对象的原理"></a>关联对象的原理</h2><p>实现技术</p>
-<ul>
-<li>AssociationsManager</li>
-<li>AssociationsHashMap</li>
-<li>ObjectAssociationMap</li>
-<li>ObjcAssociationß</li>
+        <h1 id="block"><a href="#block" class="headerlink" title="block"></a>block</h1><p>block把代码封装起来,先不执行,恰当的时候执行</p>
+<h2 id="block的本质"><a href="#block的本质" class="headerlink" title="block的本质"></a>block的本质</h2><ul>
+<li>block本质上也是一个OC对象,内部也有一个isa指针</li>
+<li>block是封装了函数调用以及函数调用环境的OC对象</li>
+<li>block的底层函数如下图所示<br><img src="https://i.loli.net/2021/02/08/2wMOyho3speZqD7.png" alt="avatar"></li>
 </ul>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><code class="hljs cpp"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AssociationsManger</span> &#123;</span><br>    <span class="hljs-keyword">static</span> AssociationHashMap *<span class="hljs-built_in">map</span>;<br>&#125;;<br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AssociationHashMap</span>:</span><span class="hljs-keyword">public</span> <span class="hljs-built_in">unordered_map</span>&lt;<span class="hljs-keyword">disgusied_ptr_t</span>, ObjectAssociationMap&gt;;<br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ObjectAssociationMap</span>:</span><span class="hljs-keyword">public</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">map</span>&lt;<span class="hljs-keyword">void</span> *, ObjectAssociation&gt;;<br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ObjectAssociation</span> &#123;</span><br>    <span class="hljs-keyword">uintptr_t</span> _policy;<br>    id _value;<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>age变量被block捕获</p>
+<p><img src="https://i.loli.net/2021/02/08/yImNKQlrC4tp6Xg.png" alt="avatar"></p>
+<h2 id="block的变量捕获"><a href="#block的变量捕获" class="headerlink" title="block的变量捕获"></a>block的变量捕获</h2><p>将外面的值捕获到block内部进行存储</p>
+<p><img src="https://i.loli.net/2021/02/09/NpuOQSY7eXi9qJ8.png" alt="avatar"></p>
+<p>方法中的self是会被捕获的,因为方法默认传递的参数有self这个对象,那么其属性也会被捕获</p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">- (<span class="hljs-keyword">void</span>)test(Person *<span class="hljs-keyword">self</span>, SEL _cmd) &#123;<br><br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="block的类型"><a href="#block的类型" class="headerlink" title="block的类型"></a>block的类型</h2><p>block有3中类型,可以调用class或者isa指针来查看具体类型,最终都是继承自NSBlock类型</p>
 <ul>
-<li>关联对象并不是存储在被关联对象本身内存中</li>
-<li>关联对象存储在全局的统一的一个AssociationsManager中</li>
-<li>设置关联对象为nil，就相当于是移除关联对象</li>
+<li><code>__NSGlobalBlock__ （ _NSConcreteGlobalBlock ）</code></li>
+<li><code>__NSStackBlock__ （ _NSConcreteStackBlock ）</code></li>
+<li><code>__NSMallocBlock__ （ _NSConcreteMallocBlock ）</code></li>
 </ul>
-<p><img src="https://i.loli.net/2021/02/08/5CGQXZW2a9ejY1m.png" alt="avatar"></p>
-
+<p><img src="https://i.loli.net/2021/02/10/fezm4IwPQaKGx7A.png" alt="avatar"></p>
+<ul>
+<li>text区代码段,存放代码</li>
+<li>数据区域存放全局变量</li>
+<li>堆区存放动态分配内存的变量,用alloc生成</li>
+<li>栈区存放普通变量</li>
+</ul>
+<p><img src="https://i.loli.net/2021/02/10/k91ofNdJ26jKl4w.png" alt="avatar"></p>
+<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-comment">//没有访问auto变量</span><br><span class="hljs-keyword">void</span>(^block1)(<span class="hljs-keyword">void</span>) = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;123&quot;</span>);<br>&#125;<br><span class="hljs-comment">//访问了auto变量</span><br><span class="hljs-keyword">int</span> age = <span class="hljs-number">20</span>;<br><span class="hljs-keyword">void</span>(^block)(<span class="hljs-keyword">void</span>) = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;%ld&quot;</span>,age);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>每一种类型的block调用copy后的结果如下所示<br><img src="https://i.loli.net/2021/02/10/7zKN8UoBfvrXGgP.png" alt="avatar"><br>在ARC环境下,block的属性为copy,调用block自动copy</p>
+<h3 id="block的原理是什么-本质是什么"><a href="#block的原理是什么-本质是什么" class="headerlink" title="block的原理是什么?本质是什么?"></a>block的原理是什么?本质是什么?</h3><h3 id="block的作用是什么-有什么使用注意点"><a href="#block的作用是什么-有什么使用注意点" class="headerlink" title="_block的作用是什么?有什么使用注意点"></a>_block的作用是什么?有什么使用注意点</h3><h3 id="block的属性修饰词为什么是copy-使用block有哪些注意"><a href="#block的属性修饰词为什么是copy-使用block有哪些注意" class="headerlink" title="block的属性修饰词为什么是copy?使用block有哪些注意?"></a>block的属性修饰词为什么是copy?使用block有哪些注意?</h3><h3 id="block在修改NSMustableArray-需不需要添加上-block"><a href="#block在修改NSMustableArray-需不需要添加上-block" class="headerlink" title="block在修改NSMustableArray,需不需要添加上_block?"></a>block在修改NSMustableArray,需不需要添加上_block?</h3>
     </div>
 </div>
 <style>
@@ -317,19 +328,12 @@
 </script>
 <div class="Last-Next">
     
-    <a href="/2021/02/08/block/">
-        <div class="last">
-            <span>上一篇</span>
-            <p>block</p>
-        </div>
-    </a>
-    
 
     
-    <a href="/2021/02/03/Category/">
+    <a href="/2021/02/07/%E5%85%B3%E8%81%94%E5%AF%B9%E8%B1%A1/">
         <div class="next">
             <span>下一篇</span>
-            <p>Category</p>
+            <p>关联对象</p>
         </div>
     </a>
     
