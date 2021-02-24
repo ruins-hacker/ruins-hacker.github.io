@@ -298,8 +298,60 @@
 </ul>
 <p><img src="https://i.loli.net/2021/02/10/k91ofNdJ26jKl4w.png" alt="avatar"></p>
 <figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc"><span class="hljs-comment">//没有访问auto变量</span><br><span class="hljs-keyword">void</span>(^block1)(<span class="hljs-keyword">void</span>) = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;123&quot;</span>);<br>&#125;<br><span class="hljs-comment">//访问了auto变量</span><br><span class="hljs-keyword">int</span> age = <span class="hljs-number">20</span>;<br><span class="hljs-keyword">void</span>(^block)(<span class="hljs-keyword">void</span>) = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">@&quot;%ld&quot;</span>,age);<br>&#125;<br></code></pre></td></tr></table></figure>
-<p>每一种类型的block调用copy后的结果如下所示<br><img src="https://i.loli.net/2021/02/10/7zKN8UoBfvrXGgP.png" alt="avatar"><br>在ARC环境下,block的属性为copy,调用block自动copy</p>
-<h3 id="block的原理是什么-本质是什么"><a href="#block的原理是什么-本质是什么" class="headerlink" title="block的原理是什么?本质是什么?"></a>block的原理是什么?本质是什么?</h3><h3 id="block的作用是什么-有什么使用注意点"><a href="#block的作用是什么-有什么使用注意点" class="headerlink" title="_block的作用是什么?有什么使用注意点"></a>_block的作用是什么?有什么使用注意点</h3><h3 id="block的属性修饰词为什么是copy-使用block有哪些注意"><a href="#block的属性修饰词为什么是copy-使用block有哪些注意" class="headerlink" title="block的属性修饰词为什么是copy?使用block有哪些注意?"></a>block的属性修饰词为什么是copy?使用block有哪些注意?</h3><h3 id="block在修改NSMustableArray-需不需要添加上-block"><a href="#block在修改NSMustableArray-需不需要添加上-block" class="headerlink" title="block在修改NSMustableArray,需不需要添加上_block?"></a>block在修改NSMustableArray,需不需要添加上_block?</h3>
+<p>每一种类型的block调用copy后的结果如下所示<br><img src="https://i.loli.net/2021/02/10/7zKN8UoBfvrXGgP.png" alt="avatar"><br>在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上，比如以下情况:</p>
+<ul>
+<li>block作为函数返回值时</li>
+<li>将block赋值给__strong指针时</li>
+<li>block作为Cocoa API中方法名含有usingBlock的方法参数时</li>
+<li>block作为GCD API的方法参数时</li>
+</ul>
+<h2 id="对象类型的auto变量"><a href="#对象类型的auto变量" class="headerlink" title="对象类型的auto变量"></a>对象类型的auto变量</h2><ul>
+<li>当block内部访问了对象类型的auto变量时<ol>
+<li>如果block是在栈上，将不会对auto变量产生强引用</li>
+<li>如果block被拷贝到堆上<ul>
+<li>会调用block内部的copy函数</li>
+<li>copy函数内部会调用<code>_Block_object_assign</code>函数</li>
+<li><code>_Block_object_assign</code>函数会根据<code>auto</code>变量的修饰符（__strong、__weak、__unsafe_unretained）做出相应的操作，形成强引用（retain）或者弱引用</li>
+</ul>
+</li>
+<li>如果block从堆中移除<ul>
+<li>会调用block内部的<code>dispose</code>函数</li>
+<li><code>dispose</code>函数内部会调用<code>_Block_object_dispose</code>函数  </li>
+</ul>
+</li>
+</ol>
+</li>
+</ul>
+<h2 id="block修饰符"><a href="#block修饰符" class="headerlink" title="block修饰符"></a>block修饰符</h2><ul>
+<li>__block可以用于解决block内部无法修改auto变量值的问题</li>
+<li>__block不能修饰全局变量、静态变量（static）</li>
+<li>编译器会将__block变量包装成一个对象</li>
+</ul>
+<p><img src="https://i.loli.net/2021/02/14/nEcbWjYdkT9NMCs.png" alt="avatar"></p>
+<figure class="highlight plain"><figcaption><span>后age的内存地址指向结构体内部的age(包装在最里面的)</span></figcaption><table><tr><td class="code"><pre><code class="hljs __block```"><br>+ 当block在栈上时，并不会对__block变量产生强引用<br>+ 当block被copy到堆时<br>  1. 会调用block内部的copy函数<br>  2. copy函数内部会调用&#96;&#96;&#96;_Block_object_assign&#96;&#96;&#96;函数<br>  3. &#96;&#96;&#96;_Block_object_assign&#96;&#96;&#96;函数会对&#96;&#96;&#96;__block&#96;&#96;&#96;变量形成强引用（retain）<br>   <br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;yRO97vItxJhGVAL.png)<br><br>+ 当block从堆中移除时<br>  1. 会调用block内部的&#96;&#96;&#96;dispose&#96;&#96;&#96;函数<br>  2. &#96;&#96;&#96;dispose&#96;&#96;&#96;函数内部会调用&#96;&#96;&#96;_Block_object_dispose&#96;&#96;&#96;函数<br>  3. &#96;&#96;&#96;_Block_object_dispose&#96;&#96;&#96;函数会自动释放引用的&#96;&#96;&#96;__block变量&#96;&#96;&#96;（release）<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;hQXu4ZRDlzkpiOs.png)<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;cw3oIYMA4dEx1WX.png)<br><br>## 循环引用<br><br>__weak 不会产生强引用,引用的对象销毁时,指针指向地址设为nil<br><br>__unsafe_unretained:不会产生强引用,引用对象销毁时,指针地址仍然指向之前的内存地址,容易产生野指针不安全<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;23&#x2F;ejbFwxX19EOZN8J.png)<br><br>解决循环引用问题---ARC<br>+ 用__weak、__unsafe_unretained解决<br>&#96;&#96;&#96;objc<br>    __weak typeof(self) weakSelf &#x3D; self;<br>    self.block &#x3D; ^&#123;<br>      printf(&quot;%p&quot;, weakSelf);<br>    &#125;<br><br>    __unsafe_unretained id weakSelf &#x3D; self;<br>    self.block &#x3D; ^&#123;<br>      NSLog(&quot;%p&quot;, weakSelf);<br>    &#125;;<br></code></pre></td></tr></table></figure>
+<ul>
+<li>用__block解决(必须调用block)<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__block <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  printf(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>  weakSelf = <span class="hljs-literal">nil</span>;<br>&#125;;<br><span class="hljs-keyword">self</span>.block();<br></code></pre></td></tr></table></figure>
+解决循环引用问题–MRC</li>
+<li>用_unsafe_unretained解决<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__<span class="hljs-keyword">unsafe_unretained</span> <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>&#125;<br></code></pre></td></tr></table></figure></li>
+<li>用__block 解决<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__block <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  printf(<span class="hljs-string">&quot;%p&quot;</span>,weakSelf);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+</li>
+</ul>
+<p>MRC不支持__weak</p>
+<h3 id="block的原理是什么-本质是什么"><a href="#block的原理是什么-本质是什么" class="headerlink" title="block的原理是什么?本质是什么?"></a>block的原理是什么?本质是什么?</h3><ul>
+<li>block本质是OC对象,它内部也有一个isa指针</li>
+<li>block是封装了函数调用以及函数调用环境的OC对象</li>
+</ul>
+<h3 id="block的作用是什么-有什么使用注意点"><a href="#block的作用是什么-有什么使用注意点" class="headerlink" title="_block的作用是什么?有什么使用注意点"></a>_block的作用是什么?有什么使用注意点</h3><h3 id="block的属性修饰词为什么是copy-使用block有哪些注意"><a href="#block的属性修饰词为什么是copy-使用block有哪些注意" class="headerlink" title="block的属性修饰词为什么是copy?使用block有哪些注意?"></a>block的属性修饰词为什么是copy?使用block有哪些注意?</h3><ul>
+<li>block没有copy就不会在堆上,在堆上可以由我们自己控制block的生命周期</li>
+<li>使用注意:循环引用</li>
+</ul>
+<h3 id="block在修改NSMustableArray-需不需要添加上-block"><a href="#block在修改NSMustableArray-需不需要添加上-block" class="headerlink" title="block在修改NSMustableArray,需不需要添加上_block?"></a>block在修改NSMustableArray,需不需要添加上_block?</h3><p>不需要</p>
+
     </div>
 </div>
 <style>
