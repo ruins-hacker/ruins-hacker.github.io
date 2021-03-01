@@ -328,20 +328,40 @@
 <li>编译器会将__block变量包装成一个对象</li>
 </ul>
 <p><img src="https://i.loli.net/2021/02/14/nEcbWjYdkT9NMCs.png" alt="avatar"></p>
-<figure class="highlight plain"><figcaption><span>后age的内存地址指向结构体内部的age(包装在最里面的)</span></figcaption><table><tr><td class="code"><pre><code class="hljs __block```"><br>+ 当block在栈上时，并不会对__block变量产生强引用<br>+ 当block被copy到堆时<br>  1. 会调用block内部的copy函数<br>  2. copy函数内部会调用&#96;&#96;&#96;_Block_object_assign&#96;&#96;&#96;函数<br>  3. &#96;&#96;&#96;_Block_object_assign&#96;&#96;&#96;函数会对&#96;&#96;&#96;__block&#96;&#96;&#96;变量形成强引用（retain）<br>   <br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;yRO97vItxJhGVAL.png)<br><br>+ 当block从堆中移除时<br>  1. 会调用block内部的&#96;&#96;&#96;dispose&#96;&#96;&#96;函数<br>  2. &#96;&#96;&#96;dispose&#96;&#96;&#96;函数内部会调用&#96;&#96;&#96;_Block_object_dispose&#96;&#96;&#96;函数<br>  3. &#96;&#96;&#96;_Block_object_dispose&#96;&#96;&#96;函数会自动释放引用的&#96;&#96;&#96;__block变量&#96;&#96;&#96;（release）<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;hQXu4ZRDlzkpiOs.png)<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;20&#x2F;cw3oIYMA4dEx1WX.png)<br><br>## 循环引用<br><br>__weak 不会产生强引用,引用的对象销毁时,指针指向地址设为nil<br><br>__unsafe_unretained:不会产生强引用,引用对象销毁时,指针地址仍然指向之前的内存地址,容易产生野指针不安全<br><br>![avatar](https:&#x2F;&#x2F;i.loli.net&#x2F;2021&#x2F;02&#x2F;23&#x2F;ejbFwxX19EOZN8J.png)<br><br>解决循环引用问题---ARC<br>+ 用__weak、__unsafe_unretained解决<br>&#96;&#96;&#96;objc<br>    __weak typeof(self) weakSelf &#x3D; self;<br>    self.block &#x3D; ^&#123;<br>      printf(&quot;%p&quot;, weakSelf);<br>    &#125;<br><br>    __unsafe_unretained id weakSelf &#x3D; self;<br>    self.block &#x3D; ^&#123;<br>      NSLog(&quot;%p&quot;, weakSelf);<br>    &#125;;<br></code></pre></td></tr></table></figure>
+<p>__block后age的内存地址指向结构体内部的age(包装在最里面的)</p>
 <ul>
+<li>当block在栈上时，并不会对__block变量产生强引用</li>
+<li>当block被copy到堆时<ol>
+<li>会调用block内部的copy函数</li>
+<li>copy函数内部会调用<code>_Block_object_assign</code>函数</li>
+<li><code>_Block_object_assign</code>函数会对<code>__block</code>变量形成强引用（retain）</li>
+</ol>
+</li>
+</ul>
+<p><img src="https://i.loli.net/2021/02/20/yRO97vItxJhGVAL.png" alt="avatar"></p>
+<ul>
+<li>当block从堆中移除时<ol>
+<li>会调用block内部的<code>dispose</code>函数</li>
+<li><code>dispose</code>函数内部会调用<code>_Block_object_dispose</code>函数</li>
+<li><code>_Block_object_dispose</code>函数会自动释放引用的<code>__block变量</code>（release）</li>
+</ol>
+</li>
+</ul>
+<p><img src="https://i.loli.net/2021/02/20/hQXu4ZRDlzkpiOs.png" alt="avatar"></p>
+<p><img src="https://i.loli.net/2021/02/20/cw3oIYMA4dEx1WX.png" alt="avatar"></p>
+<h2 id="循环引用"><a href="#循环引用" class="headerlink" title="循环引用"></a>循环引用</h2><p>__weak 不会产生强引用,引用的对象销毁时,指针指向地址设为nil</p>
+<p>__unsafe_unretained:不会产生强引用,引用对象销毁时,指针地址仍然指向之前的内存地址,容易产生野指针不安全</p>
+<p><img src="https://i.loli.net/2021/02/23/ejbFwxX19EOZN8J.png" alt="avatar"></p>
+<p>解决循环引用问题—ARC</p>
+<ul>
+<li>用__weak、__unsafe_unretained解决<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__<span class="hljs-keyword">weak</span> <span class="hljs-keyword">typeof</span>(<span class="hljs-keyword">self</span>) weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  printf(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>&#125;<br><br>__<span class="hljs-keyword">unsafe_unretained</span> <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>&#125;;<br></code></pre></td></tr></table></figure></li>
 <li>用__block解决(必须调用block)<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__block <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  printf(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>  weakSelf = <span class="hljs-literal">nil</span>;<br>&#125;;<br><span class="hljs-keyword">self</span>.block();<br></code></pre></td></tr></table></figure>
 解决循环引用问题–MRC</li>
 <li>用_unsafe_unretained解决<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__<span class="hljs-keyword">unsafe_unretained</span> <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  <span class="hljs-built_in">NSLog</span>(<span class="hljs-string">&quot;%p&quot;</span>, weakSelf);<br>&#125;<br></code></pre></td></tr></table></figure></li>
 <li>用__block 解决<figure class="highlight objc"><table><tr><td class="code"><pre><code class="hljs objc">__block <span class="hljs-keyword">id</span> weakSelf = <span class="hljs-keyword">self</span>;<br><span class="hljs-keyword">self</span>.block = ^&#123;<br>  printf(<span class="hljs-string">&quot;%p&quot;</span>,weakSelf);<br>&#125;<br></code></pre></td></tr></table></figure>
-
-
-
-
-
-</li>
+MRC不支持__weak</li>
 </ul>
-<p>MRC不支持__weak</p>
+<h3 id="什么是block"><a href="#什么是block" class="headerlink" title="什么是block?"></a>什么是block?</h3><p>Block是将函数及其执行上下文封装起来的对象。</p>
 <h3 id="block的原理是什么-本质是什么"><a href="#block的原理是什么-本质是什么" class="headerlink" title="block的原理是什么?本质是什么?"></a>block的原理是什么?本质是什么?</h3><ul>
 <li>block本质是OC对象,它内部也有一个isa指针</li>
 <li>block是封装了函数调用以及函数调用环境的OC对象</li>
